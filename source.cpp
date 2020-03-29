@@ -7,6 +7,7 @@
 #include <time.h> 
 #include <cmath>
 #include <vector>
+#include <map>
 
 const int SCREEN_WIDTH = 900;
 const int SCREEN_HEIGHT = 900;
@@ -395,6 +396,90 @@ bool loadMedia() {
         gSpriteClips[24].w = ENEMY_SIZE;
         gSpriteClips[24].h = ENEMY_SIZE;
 
+        //GOBLIN IDLE
+        gSpriteClips[25].x = 368;
+        gSpriteClips[25].y = 32;
+        gSpriteClips[25].w = ENEMY_SIZE;
+        gSpriteClips[25].h = ENEMY_SIZE;
+
+        gSpriteClips[26].x = 384;
+        gSpriteClips[26].y = 32;
+        gSpriteClips[26].w = ENEMY_SIZE;
+        gSpriteClips[26].h = ENEMY_SIZE;
+
+        gSpriteClips[27].x = 400;
+        gSpriteClips[27].y = 32;
+        gSpriteClips[27].w = ENEMY_SIZE;
+        gSpriteClips[27].h = ENEMY_SIZE;
+
+        gSpriteClips[28].x = 416;
+        gSpriteClips[28].y = 32;
+        gSpriteClips[28].w = ENEMY_SIZE;
+        gSpriteClips[28].h = ENEMY_SIZE;
+
+        //GOBLIN RUN
+        gSpriteClips[29].x = 432;
+        gSpriteClips[29].y = 32;
+        gSpriteClips[29].w = ENEMY_SIZE;
+        gSpriteClips[29].h = ENEMY_SIZE;
+
+        gSpriteClips[30].x = 448;
+        gSpriteClips[30].y = 32;
+        gSpriteClips[30].w = ENEMY_SIZE;
+        gSpriteClips[30].h = ENEMY_SIZE;
+
+        gSpriteClips[31].x = 464;
+        gSpriteClips[31].y = 32;
+        gSpriteClips[31].w = ENEMY_SIZE;
+        gSpriteClips[31].h = ENEMY_SIZE;
+
+        gSpriteClips[32].x = 480;
+        gSpriteClips[32].y = 32;
+        gSpriteClips[32].w = ENEMY_SIZE;
+        gSpriteClips[32].h = ENEMY_SIZE;
+
+        //IMP IDLE
+        gSpriteClips[33].x = 368;
+        gSpriteClips[33].y = 48;
+        gSpriteClips[33].w = ENEMY_SIZE;
+        gSpriteClips[33].h = ENEMY_SIZE;
+
+        gSpriteClips[34].x = 384;
+        gSpriteClips[34].y = 48;
+        gSpriteClips[34].w = ENEMY_SIZE;
+        gSpriteClips[34].h = ENEMY_SIZE;
+
+        gSpriteClips[35].x = 400;
+        gSpriteClips[35].y = 48;
+        gSpriteClips[35].w = ENEMY_SIZE;
+        gSpriteClips[35].h = ENEMY_SIZE;
+
+        gSpriteClips[36].x = 416;
+        gSpriteClips[36].y = 48;
+        gSpriteClips[36].w = ENEMY_SIZE;
+        gSpriteClips[36].h = ENEMY_SIZE;
+
+        //IMP RUN
+        gSpriteClips[37].x = 432;
+        gSpriteClips[37].y = 48;
+        gSpriteClips[37].w = ENEMY_SIZE;
+        gSpriteClips[37].h = ENEMY_SIZE;
+
+        gSpriteClips[38].x = 448;
+        gSpriteClips[38].y = 48;
+        gSpriteClips[38].w = ENEMY_SIZE;
+        gSpriteClips[38].h = ENEMY_SIZE;
+
+        gSpriteClips[39].x = 464;
+        gSpriteClips[39].y = 48;
+        gSpriteClips[39].w = ENEMY_SIZE;
+        gSpriteClips[39].h = ENEMY_SIZE;
+
+        gSpriteClips[40].x = 480;
+        gSpriteClips[40].y = 48;
+        gSpriteClips[40].w = ENEMY_SIZE;
+        gSpriteClips[40].h = ENEMY_SIZE;
+
 
     }
     return success;
@@ -514,6 +599,10 @@ int main(int argc, char* args[]){
 
         std::vector<Enemy> enemies;
 
+        int enemyClipIndices[3] = {17, 25, 33};
+        int enemyHealths[3] = {1, 2, 3};
+        int enemySpeeds[3] = {2, 1.5, 1};
+
         // Enemy enemy(10, 10, 2, 17);
 
         for(int i = 0; i < 10; i++) {
@@ -525,7 +614,8 @@ int main(int argc, char* args[]){
                 x = rand() % 2 == 0 ? -ENEMY_SIZE: SCREEN_WIDTH + ENEMY_SIZE;
                 y = rand() % SCREEN_HEIGHT;
             }
-            enemies.push_back(createEnemy(x, y, 1, 17, 1));
+            int monster = rand()%3;
+            enemies.push_back(createEnemy(x, y, enemySpeeds[monster], enemyClipIndices[monster], enemyHealths[monster]));
         }
 
         while(!quit){
@@ -582,7 +672,8 @@ int main(int argc, char* args[]){
                     x = rand() % 2 == 0 ? -ENEMY_SIZE: SCREEN_WIDTH + ENEMY_SIZE;
                     y = rand() % SCREEN_HEIGHT;
                 }
-                enemies.push_back(createEnemy(x, y, 1, 17, 1));
+                int monster = rand()%3;
+                enemies.push_back(createEnemy(x, y, enemySpeeds[monster], enemyClipIndices[monster], enemyHealths[monster]));
             }
 
             SDL_RenderPresent(gRenderer);
