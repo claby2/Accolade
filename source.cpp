@@ -108,8 +108,8 @@ class Coin {
         int frame;
     
     Coin(float x, float y) {
-        mPosX = x;
-        mPosY = y;
+        mPosX = x + COIN_SIZE;
+        mPosY = y + COIN_SIZE;
     }
 
     void render() {
@@ -231,8 +231,8 @@ class Player {
             float y1 = mPosY;
             int r1 = COIN_SIZE;
 
-            float x2 = b.mPosX - PLAYER_WIDTH;
-            float y2 = b.mPosY - PLAYER_HEIGHT;
+            float x2 = b.mPosX - PLAYER_WIDTH/2;
+            float y2 = b.mPosY - PLAYER_HEIGHT/2;
             int r2 = PLAYER_WIDTH;
 
             if((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) <= (r1+r2)*(r1+r2)){
@@ -755,15 +755,14 @@ int main(int argc, char* args[]){
             {30, 2, 17, 4} //TEST
         };
 
-        std::string waveNarration[8] {
+        std::string waveNarration[7] {
             "Welcome to Accolade, WASD to move, left click to kick and continue.",
             "Here are some zombies for you to fight!",
             "Next wave! goblins!",
             "Third wave already? Imps.",
-            "Hmmm what is that next to you? A KNIFE?!",
+            "",
             "Hmmm what is that next to you? A KNIFE?!",
             "NOW YOU DO EXTRA DAMAGE, (left click to continue)",
-            "Dev"
         };
 
         std::map<int, int> weaponData; // Track weapon damage (clip, damage)
@@ -799,7 +798,7 @@ int main(int argc, char* args[]){
                     quit = true;
                 }
 
-                if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT){
+                if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && player.attackingFrame == 0){
                     if(currentWave == 0) {
                         killCount = -1;
                     }
