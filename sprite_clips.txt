@@ -19,3 +19,5 @@ Imp-Run: 37-40
 Knife: 41
 
 Coin: 42-45
+
+Chest: 46-48

@@ -20,6 +20,7 @@ const int ENEMY_SIZE = 16;
 const int PLAYER_WIDTH = 16;
 const int PLAYER_HEIGHT = 28;
 const int COIN_SIZE = 8;
+const int CHEST_SIZE = 16;
 
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
@@ -354,6 +355,39 @@ class Weapon {
         }
 };
 
+class Chest {
+    public:
+        int mPosX;
+        int mPosY;
+        int opened = false;
+
+    Chest(int x, int y) {
+        mPosX = x;
+        mPosY = y;
+    }
+
+    void intersectMouse(int mouseX, int mouseY) {
+        if(mouseX >= mPosX && mouseX <= mPosX + CHEST_SIZE*SPRITE_ZOOM_FACTOR && mouseY >= mPosY && mouseY <= mPosY + CHEST_SIZE*SPRITE_ZOOM_FACTOR) {
+            opened = true;
+        }
+    }
+
+    bool render() {
+        if(opened) {
+            frame++;
+            if(frame / ANIMATION_FRAME_RATE > ANIMATION_FRAMES) {
+                return true;
+            }
+        }
+        gSpriteSheetTexture.render(mPosX, mPosY, &gSpriteClips[(frame / ANIMATION_FRAME_RATE) + 46], 0.0, NULL, SDL_FLIP_NONE);
+        return false;
+    }
+
+    private:
+        int ANIMATION_FRAMES = 2;
+        int frame = 0;
+};
+
 bool loadMedia() {
     bool success = true;
 
@@ -613,6 +647,25 @@ bool loadMedia() {
         gSpriteClips[45].y = 272;
         gSpriteClips[45].w = COIN_SIZE;
         gSpriteClips[45].h = COIN_SIZE;
+
+        //CHEST
+        gSpriteClips[46].x = 240;
+        gSpriteClips[46].y = 224;
+        gSpriteClips[46].w = CHEST_SIZE;
+        gSpriteClips[46].h = CHEST_SIZE;
+
+        //CHEST OPEN ANIMATION
+
+        gSpriteClips[47].x = 256;
+        gSpriteClips[47].y = 224;
+        gSpriteClips[47].w = CHEST_SIZE;
+        gSpriteClips[47].h = CHEST_SIZE;
+
+        gSpriteClips[48].x = 272;
+        gSpriteClips[48].y = 224;
+        gSpriteClips[48].w = CHEST_SIZE;
+        gSpriteClips[48].h = CHEST_SIZE;
+
     }
     return success;
 }
@@ -722,6 +775,11 @@ Coin createCoin(int x, int y) {
     return c;
 }
 
+Chest createChest(int x, int y) {
+    Chest c(x, y);
+    return c;
+}
+
 void createEnemies(std::vector<Enemy>& enemies, int amount, int speed, int clip, int health) {
     for(int i = enemies.size(); i < amount; i++) {
         int delay = rand()%(21)+40;
@@ -780,6 +838,8 @@ int main(int argc, char* args[]){
 
         std::vector<Coin> coins;
 
+        std::vector<Chest> chests;
+
         int currentWeapon = 0; //No weapon ( just a kick :) )
         int currentWave = 0;
         int killCount = 0;
@@ -798,14 +858,21 @@ int main(int argc, char* args[]){
                     quit = true;
                 }
 
-                if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && player.attackingFrame == 0){
-                    if(currentWave == 0) {
-                        killCount = -1;
+                if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT){
+                    int mouseX, mouseY;
+                    SDL_GetMouseState(&mouseX, &mouseY);
+                    for(int i = 0; i < chests.size(); i++) {
+                        chests[i].intersectMouse(mouseX, mouseY);
                     }
-                    player.attackingFrame = ANIMATION_FRAME_RATE;
-                    for(int i = 0; i < enemies.size(); i++){
-                        if(enemies[i].attackable) {
-                            enemies[i].health -= weaponData[currentWeapon];
+                    if(player.attackingFrame == 0) {
+                        if(currentWave == 0) {
+                            killCount = -1;
+                        }
+                        player.attackingFrame = ANIMATION_FRAME_RATE;
+                        for(int i = 0; i < enemies.size(); i++){
+                            if(enemies[i].attackable) {
+                                enemies[i].health -= weaponData[currentWeapon];
+                            }
                         }
                     }
                 }
@@ -880,10 +947,16 @@ int main(int argc, char* args[]){
 
             for(int i = 0; i < coins.size(); i++){
                 if(player.intersectCoin(coins[i])) {
-                    coinCount++;
+                    coinCount += (rand()%50)+1;
                     coins.erase(coins.begin() + i);
                 } else {
                     coins[i].render();
+                }
+            }
+
+            for(int i = 0; i < chests.size(); i++){
+                if(chests[i].render()) {
+                    chests.erase(chests.begin() + i);
                 }
             }
 
