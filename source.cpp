@@ -73,13 +73,13 @@ public:
 		void setAlpha( Uint8 alpha ) {
             SDL_SetTextureAlphaMod(mTexture, alpha);
         }
-		void render( int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE ){
+		void render( int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE, int sizeMultiplier = SPRITE_ZOOM_FACTOR){
             SDL_Rect renderQuad = { x, y, mWidth, mHeight };
 
             if( clip != NULL )
             {
-                renderQuad.w = clip->w*SPRITE_ZOOM_FACTOR;
-                renderQuad.h = clip->h*SPRITE_ZOOM_FACTOR;
+                renderQuad.w = clip->w*sizeMultiplier;
+                renderQuad.h = clip->h*sizeMultiplier;
             }
 
             SDL_RenderCopyEx( gRenderer, mTexture, clip, &renderQuad, angle, center, flip );
@@ -169,7 +169,6 @@ class Enemy {
 
 class Player {
     public:
-        int damage = 1;
         int mPosX, mPosY;
         float mVelX, mVelY;
         int attackingFrame;
@@ -260,6 +259,60 @@ class Player {
         SDL_RendererFlip res;
         int ANIMATION_FRAMES = 4;
         const int PLAYER_VEL = 3;
+};
+
+class Weapon {
+    public:
+        bool display;
+        int clipIndex;
+        bool isDropped; // true is dropped on the floor, false is in player inventory
+        int mPosX = 0;
+        int mPosY = 0;
+
+        Weapon(int weaponClip, bool weaponState, int x = NULL, int y = NULL, bool hasIntroduced = true) {
+            if(!hasIntroduced) {
+                display = false;
+            } else {
+                display = true;
+            }
+        }
+
+        void setProperties(int weaponClip, bool weaponState, int x = NULL, int y = NULL) {
+            clipIndex = weaponClip;
+            isDropped = weaponState;
+            if(isDropped) {
+                mPosX = x;
+                mPosY = y;
+            }
+        }
+
+        bool intersect(Player b) {
+            if(isDropped) {
+                float x1 = mPosX + PLAYER_WIDTH/2;
+                float y1 = mPosY + PLAYER_HEIGHT/2;
+                int r1 = PLAYER_WIDTH;
+
+                float x2 = b.mPosX + PLAYER_WIDTH/2;
+                float y2 = b.mPosY + PLAYER_HEIGHT/2;
+                int r2 = PLAYER_WIDTH;
+
+                if((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) <= (r1+r2)*(r1+r2)){
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        }
+
+        void render() {
+            if(!isDropped) {
+                mPosX = 0;
+                mPosY = 0;
+                gSpriteSheetTexture.render(mPosX, mPosY, &gSpriteClips[clipIndex], 0.0, NULL, SDL_FLIP_NONE, 4);
+            } else {
+                gSpriteSheetTexture.render(mPosX, mPosY, &gSpriteClips[clipIndex], 0.0, NULL, SDL_FLIP_NONE, 2);
+            }
+        }
 };
 
 bool loadMedia() {
@@ -495,7 +548,11 @@ bool loadMedia() {
         gSpriteClips[40].w = ENEMY_SIZE;
         gSpriteClips[40].h = ENEMY_SIZE;
 
-
+        //KNIFE
+        gSpriteClips[41].x = 293;
+        gSpriteClips[41].y = 18;
+        gSpriteClips[41].w = 6;
+        gSpriteClips[41].h = 13;
     }
     return success;
 }
@@ -586,7 +643,7 @@ void renderTileMap(int tileMap[][WINDOW_SIZE]) {
     }
 }
 
-void printTileMap(int tileMap[][WINDOW_SIZE]){
+void printTileMap(int tileMap[][WINDOW_SIZE]){ // DEBUG ONLY
     for(int i = 0; i < WINDOW_SIZE; i++) {
         for(int j = 0; j < WINDOW_SIZE; j++) {
             std::cout << tileMap[i][j];
@@ -622,22 +679,31 @@ int main(int argc, char* args[]){
     } else if(!loadMedia()){
         printf("Failed to load media!\n");
     } else {
-
-        int waveData[5][4] = { // In each wave, monster: amount, speed, clip, and health is defined in order
+        int waveData[8][4] = { // In each wave, monster: amount, speed, clip, and health is defined in order
             {-1, 0, 0, 0}, // Not an actual wave
             {10, 2, 17, 1}, // Tiny Zombie 
             {10, 1, 25, 2}, // Goblins 
             {5, 1, 33, 5}, // Imp
-            {0, 0, 0, 0}
+            {0, 0, 0, 0}, // Knife Event
+            {0, 0, 0, 0},
+            {0, 0, 0 , 0},
+            {30, 2, 17, 1} //TEST
         };
 
-        std::string waveNarration[5] {
-            "Welcome to Accolade, WASD to move, left click to kick.",
+        std::string waveNarration[8] {
+            "Welcome to Accolade, WASD to move, left click to kick and continue.",
             "Here are some zombies for you to fight!",
             "Next wave! goblins!",
             "Third wave already? Imps.",
-            "Hmmm what is that next to you? A sword?!"
+            "Hmmm what is that next to you? A KNIFE?!",
+            "Hmmm what is that next to you? A KNIFE?!",
+            "NOW YOU DO EXTRA DAMAGE, (left click to continue)",
+            "Dev"
         };
+
+        std::map<int, int> weaponData; // Track weapon damage (clip, damage)
+        weaponData[0] = 1;
+        weaponData[41] = 2; // Knife
 
         int tileMap[WINDOW_SIZE][WINDOW_SIZE];
         setTileMap(tileMap);
@@ -648,14 +714,8 @@ int main(int argc, char* args[]){
 
         std::vector<Enemy> enemies;
 
-        // int enemyClipIndices[3] = {17, 25, 33};
-        // int enemyHealths[3] = {1, 2, 3};
-        // int enemySpeeds[3] = {2, 1.5, 1};
 
-        // Enemy enemy(10, 10, 2, 17);
-
-        // createEnemies(enemies, 10, 2, 17, 1);
-
+        int currentWeapon = 0; //No weapon ( just a kick :) )
         int currentWave = 0;
         int killCount = 0;
 
@@ -663,6 +723,8 @@ int main(int argc, char* args[]){
         c.r = 255;
         c.g = 255;
         c.b = 255;
+
+        Weapon weapon(41, true, rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, false);
 
         while(!quit){
             while(SDL_PollEvent( &e ) != 0) {
@@ -677,7 +739,7 @@ int main(int argc, char* args[]){
                     player.attackingFrame = ANIMATION_FRAME_RATE;
                     for(int i = 0; i < enemies.size(); i++){
                         if(enemies[i].attackable) {
-                            enemies[i].health -= player.damage;
+                            enemies[i].health -= weaponData[currentWeapon];
                         }
                     }
                 }
@@ -714,15 +776,39 @@ int main(int argc, char* args[]){
             if(killCount == waveData[currentWave][0]) {
                 killCount = 0;
                 if(currentWave + 1 < sizeof(waveData)/sizeof(waveData[0]) && waveData[currentWave][0] != 0) {
-                    currentWave++;
+                    currentWave++;  
+                }
+                if(waveData[currentWave][0] != 0) {
                     createEnemies(
                         enemies, 
                         waveData[currentWave][0], 
                         waveData[currentWave][1], 
                         waveData[currentWave][2], 
                         waveData[currentWave][3]
-                    );   
+                    ); 
                 }
+            }
+
+            //Wave Specific Events
+            if(currentWave == 4) { // Drop Knife Event
+                weapon.display = true;
+                weapon.setProperties(41, true, rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT);
+                currentWave++;
+            } else if(currentWave == 5) {
+                if(weapon.isDropped && weapon.intersect(player)) {
+                    std::cout << "YES";
+                    weapon.isDropped = false;
+                    currentWave++;
+                }
+            } else if(currentWave == 6) {
+                if(player.attackingFrame > 0) {
+                    currentWave++;
+                    killCount = waveData[currentWave][0];
+                }
+            }
+
+            if(weapon.display) {
+                weapon.render();
             }
 
             // if(currentWave != 0) {
@@ -735,7 +821,6 @@ int main(int argc, char* args[]){
             }
             
             SDL_RenderPresent(gRenderer);
-
         }
     }
     close();

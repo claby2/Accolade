@@ -1,0 +1,17 @@
+For developing use only!
+This is used to keep track of indices of sprite clippings stored in gSpriteClips.
+
+Player-Idle: 0-3
+Player-Run: 4-7
+Player-Hit: 8
+
+Floors: 9-16
+
+TinyZombie-Idle: 17-20
+TinyZombie-Run: 21-24
+
+Goblin-Idle: 25-28
+Goblin-Run: 29-32
+
+Imp-Idle: 33-36
+Imp-Run: 37-40
