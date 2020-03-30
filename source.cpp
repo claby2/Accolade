@@ -22,6 +22,7 @@ const int PLAYER_HEIGHT = 28;
 
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
+TTF_Font *gFont = NULL;
 
 class LTexture {
 public:
@@ -45,15 +46,15 @@ public:
             mTexture = newTexture;
             return mTexture != NULL;
         }
-        // bool loadFromRenderedText(std::string textureText, SDL_Color textColor) {
-        //     free();
-        //     SDL_Surface* textSurface = TTF_RenderText_Solid(gFont, textureText.c_str(), textColor);
-        //     mTexture = SDL_CreateTextureFromSurface(gRenderer, textSurface);
-        //     mWidth = textSurface->w;
-        //     mHeight = textSurface->h;
-        //     SDL_FreeSurface(textSurface);
-        //     return mTexture != NULL;
-        // }
+        bool loadFromRenderedText(std::string textureText, SDL_Color textColor) {
+            free();
+            SDL_Surface* textSurface = TTF_RenderText_Solid(gFont, textureText.c_str(), textColor);
+            mTexture = SDL_CreateTextureFromSurface(gRenderer, textSurface);
+            mWidth = textSurface->w;
+            mHeight = textSurface->h;
+            SDL_FreeSurface(textSurface);
+            return mTexture != NULL;
+        }
 		void free() {
             SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
             if(mTexture != NULL){
@@ -98,6 +99,7 @@ public:
 
 SDL_Rect gSpriteClips[100];
 LTexture gSpriteSheetTexture;
+LTexture gTextTexture; // TTF
 
 class Enemy {
     public:
@@ -167,6 +169,7 @@ class Enemy {
 
 class Player {
     public:
+        int damage = 1;
         int mPosX, mPosY;
         float mVelX, mVelY;
         int attackingFrame;
@@ -261,6 +264,18 @@ class Player {
 
 bool loadMedia() {
     bool success = true;
+
+    gFont = TTF_OpenFont("fonts/OpenSans-Regular.ttf", 28);
+    if(gFont == NULL){
+        printf("Failed to load font! SDL_ttf Error: %s\n", TTF_GetError());
+        success = false;
+    } else {
+        SDL_Color textColor = {0, 0, 0};
+        if( !gTextTexture.loadFromRenderedText( "The quick brown fox jumps over the lazy dog", textColor )) {
+            printf( "Failed to render text texture!\n" );
+            success = false;
+        }
+    }
 
     if(!gSpriteSheetTexture.loadFromFile("images/0x72_DungeonTilesetII_v1.1.png")){
         printf("Failed to load sprite sheet texture!\n");
@@ -486,7 +501,10 @@ bool loadMedia() {
 }
 
 void close() {
-    gSpriteSheetTexture.free();
+    gSpriteSheetTexture.free();    
+    gTextTexture.free();
+    TTF_CloseFont(gFont);
+    gFont = NULL;
     SDL_DestroyRenderer(gRenderer);
     SDL_DestroyWindow(gWindow);
     gWindow = NULL;
@@ -582,6 +600,21 @@ Enemy createEnemy(int x, int y, int vel, int t, int hp) {
     return e;
 }
 
+void createEnemies(std::vector<Enemy>& enemies, int amount, int speed, int clip, int health) {
+    for(int i = enemies.size(); i < amount; i++) {
+        int delay = rand()%(21)+40;
+        int x, y;
+        if(rand() % 2 == 0){
+            x = rand() % SCREEN_WIDTH;
+            y = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_HEIGHT + ENEMY_SIZE*delay;
+        } else {
+            x = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_WIDTH + ENEMY_SIZE*delay;
+            y = rand() % SCREEN_HEIGHT;
+        }
+        enemies.push_back(createEnemy(x, y, speed, clip, health));
+    }
+}
+
 int main(int argc, char* args[]){
     srand((unsigned)time(NULL));
     if(!init()){
@@ -589,6 +622,22 @@ int main(int argc, char* args[]){
     } else if(!loadMedia()){
         printf("Failed to load media!\n");
     } else {
+
+        int waveData[5][4] = { // In each wave, monster: amount, speed, clip, and health is defined in order
+            {-1, 0, 0, 0}, // Not an actual wave
+            {10, 2, 17, 1}, // Tiny Zombie 
+            {10, 1, 25, 2}, // Goblins 
+            {5, 1, 33, 5}, // Imp
+            {0, 0, 0, 0}
+        };
+
+        std::string waveNarration[5] {
+            "Welcome to Accolade, WASD to move, left click to kick.",
+            "Here are some zombies for you to fight!",
+            "Next wave! goblins!",
+            "Third wave already? Imps.",
+            "Hmmm what is that next to you? A sword?!"
+        };
 
         int tileMap[WINDOW_SIZE][WINDOW_SIZE];
         setTileMap(tileMap);
@@ -599,24 +648,21 @@ int main(int argc, char* args[]){
 
         std::vector<Enemy> enemies;
 
-        int enemyClipIndices[3] = {17, 25, 33};
-        int enemyHealths[3] = {1, 2, 3};
-        int enemySpeeds[3] = {2, 1.5, 1};
+        // int enemyClipIndices[3] = {17, 25, 33};
+        // int enemyHealths[3] = {1, 2, 3};
+        // int enemySpeeds[3] = {2, 1.5, 1};
 
         // Enemy enemy(10, 10, 2, 17);
 
-        for(int i = 0; i < 10; i++) {
-            int x, y;
-            if(rand() % 2 == 0){
-                x = rand() % SCREEN_WIDTH;
-                y = rand() % 2 == 0 ? -ENEMY_SIZE: SCREEN_HEIGHT + ENEMY_SIZE;
-            } else {
-                x = rand() % 2 == 0 ? -ENEMY_SIZE: SCREEN_WIDTH + ENEMY_SIZE;
-                y = rand() % SCREEN_HEIGHT;
-            }
-            int monster = rand()%3;
-            enemies.push_back(createEnemy(x, y, enemySpeeds[monster], enemyClipIndices[monster], enemyHealths[monster]));
-        }
+        // createEnemies(enemies, 10, 2, 17, 1);
+
+        int currentWave = 0;
+        int killCount = 0;
+
+        SDL_Color c;
+        c.r = 255;
+        c.g = 255;
+        c.b = 255;
 
         while(!quit){
             while(SDL_PollEvent( &e ) != 0) {
@@ -625,10 +671,13 @@ int main(int argc, char* args[]){
                 }
 
                 if(e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT){
+                    if(currentWave == 0) {
+                        killCount = -1;
+                    }
                     player.attackingFrame = ANIMATION_FRAME_RATE;
                     for(int i = 0; i < enemies.size(); i++){
                         if(enemies[i].attackable) {
-                            --enemies[i].health;
+                            enemies[i].health -= player.damage;
                         }
                     }
                 }
@@ -639,16 +688,15 @@ int main(int argc, char* args[]){
 
             SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0x00);
             SDL_RenderClear(gRenderer);
-            // ########
-            // #RENDER#
-            // ########
+
             renderTileMap(tileMap);
 
             player.move();
             player.render();
 
             for(int i = 0; i < enemies.size(); i++){
-                if(enemies[i].health == 0){
+                if(enemies[i].health <= 0){
+                    killCount++;
                     enemies.erase(enemies.begin() + i);
                 } else {
                     if(player.intersect(enemies[i])){
@@ -663,19 +711,29 @@ int main(int argc, char* args[]){
                 }
             }
 
-            for(int i = enemies.size(); i < 10; i++) {
-                int x, y;
-                if(rand() % 2 == 0){
-                    x = rand() % SCREEN_WIDTH;
-                    y = rand() % 2 == 0 ? -ENEMY_SIZE: SCREEN_HEIGHT + ENEMY_SIZE;
-                } else {
-                    x = rand() % 2 == 0 ? -ENEMY_SIZE: SCREEN_WIDTH + ENEMY_SIZE;
-                    y = rand() % SCREEN_HEIGHT;
+            if(killCount == waveData[currentWave][0]) {
+                killCount = 0;
+                if(currentWave + 1 < sizeof(waveData)/sizeof(waveData[0]) && waveData[currentWave][0] != 0) {
+                    currentWave++;
+                    createEnemies(
+                        enemies, 
+                        waveData[currentWave][0], 
+                        waveData[currentWave][1], 
+                        waveData[currentWave][2], 
+                        waveData[currentWave][3]
+                    );   
                 }
-                int monster = rand()%3;
-                enemies.push_back(createEnemy(x, y, enemySpeeds[monster], enemyClipIndices[monster], enemyHealths[monster]));
             }
 
+            // if(currentWave != 0) {
+            //     gTextTexture.loadFromRenderedText("Wave: " + std::to_string(currentWave), c);
+            //     gTextTexture.render(0, 0);
+            // }
+            if(currentWave < sizeof(waveNarration)/sizeof(waveNarration[0])) {
+                gTextTexture.loadFromRenderedText(waveNarration[currentWave], c);
+                gTextTexture.render(0, SCREEN_HEIGHT-gTextTexture.getHeight());
+            }
+            
             SDL_RenderPresent(gRenderer);
 
         }
