@@ -655,7 +655,6 @@ bool loadMedia() {
         gSpriteClips[46].h = CHEST_SIZE;
 
         //CHEST OPEN ANIMATION
-
         gSpriteClips[47].x = 256;
         gSpriteClips[47].y = 224;
         gSpriteClips[47].w = CHEST_SIZE;
@@ -802,7 +801,7 @@ int main(int argc, char* args[]){
     } else if(!loadMedia()){
         printf("Failed to load media!\n");
     } else {
-        int waveData[8][4] = { // In each wave, monster: amount, speed, clip, and health is defined in order
+        int waveData[7][4] = { // In each wave, monster: amount, speed, clip, and health is defined in order
             {-1, 0, 0, 0}, // Not an actual wave
             {10, 2, 17, 1}, // Tiny Zombie 
             {10, 1, 25, 2}, // Goblins 
@@ -810,7 +809,6 @@ int main(int argc, char* args[]){
             {0, 0, 0, 0}, // Knife Event
             {0, 0, 0, 0},
             {0, 0, 0 , 0},
-            {30, 2, 17, 4} //TEST
         };
 
         std::string waveNarration[7] {
@@ -820,7 +818,7 @@ int main(int argc, char* args[]){
             "Third wave already? Imps.",
             "",
             "Hmmm what is that next to you? A KNIFE?!",
-            "NOW YOU DO EXTRA DAMAGE, (left click to continue)",
+            "Now you do extra damage, (left click to continue)",
         };
 
         std::map<int, int> weaponData; // Track weapon damage (clip, damage)
@@ -835,15 +833,14 @@ int main(int argc, char* args[]){
         Player player;
 
         std::vector<Enemy> enemies;
-
         std::vector<Coin> coins;
-
         std::vector<Chest> chests;
 
         int currentWeapon = 0; //No weapon ( just a kick :) )
         int currentWave = 0;
         int killCount = 0;
         int coinCount = 0;
+        bool endlessMode = false;
 
         SDL_Color c;
         c.r = 255;
@@ -851,6 +848,14 @@ int main(int argc, char* args[]){
         c.b = 255;
 
         Weapon weapon(41, true, rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT, false);
+
+        //Endless Mode Variables
+        int enemiesToKill;
+        int enemiesToGenerate;
+        int enemyAmount;
+        int enemySpeed;
+        int enemyClip;
+        int enemyHealth;
 
         while(!quit){
             while(SDL_PollEvent( &e ) != 0) {
@@ -907,24 +912,51 @@ int main(int argc, char* args[]){
                 }
             }
 
-            if(killCount == waveData[currentWave][0]) {
-                killCount = 0;
-                if(currentWave + 1 < sizeof(waveData)/sizeof(waveData[0]) && waveData[currentWave][0] != 0) {
-                    currentWave++;  
+            if(currentWave != sizeof(waveData)/sizeof(waveData[0])) {
+                if(killCount == waveData[currentWave][0]) {
+                    killCount = 0;
+                    if(currentWave + 1 < sizeof(waveData)/sizeof(waveData[0]) && waveData[currentWave][0] != 0) {
+                        currentWave++;  
+                    }
+                    if(waveData[currentWave][0] != 0) {
+                        createEnemies(
+                            enemies, 
+                            waveData[currentWave][0], 
+                            waveData[currentWave][1], 
+                            waveData[currentWave][2], 
+                            waveData[currentWave][3]
+                        ); 
+                    }
                 }
-                if(waveData[currentWave][0] != 0) {
-                    createEnemies(
-                        enemies, 
-                        waveData[currentWave][0], 
-                        waveData[currentWave][1], 
-                        waveData[currentWave][2], 
-                        waveData[currentWave][3]
-                    ); 
+            } else {
+                endlessMode = true;
+            }
+
+            if(endlessMode) {
+                if(enemies.empty()) {
+                    killCount = 0;
+                    enemiesToKill = (rand()%20)+10;
+                    enemiesToGenerate = enemiesToKill;
+                    for(int i = 0; i < rand()%3+1; i++) {
+                        if(enemiesToGenerate > 0) {
+                            enemyAmount = rand()%enemiesToGenerate;// 1
+                            switch(rand()%3){
+                                case 0: enemySpeed = 2; enemyClip = 17; enemyHealth = 1; break;
+                                case 1: enemySpeed = 1; enemyClip = 25; enemyHealth = 2; break;
+                                case 2: enemySpeed = 1; enemyClip = 33; enemyHealth = 5; break;
+                            };
+                            createEnemies(enemies, enemyAmount, enemySpeed ,enemyClip, enemyHealth);
+                            enemiesToGenerate -= enemyAmount;
+                        }
+                    }
+                    if(enemiesToGenerate > 0) {
+                        createEnemies(enemies, enemiesToGenerate, enemySpeed, enemyClip, enemyHealth);
+                    }
                 }
             }
 
             //Wave Specific Events
-            if(currentWave == 4) { // Drop Knife Event
+            if(currentWave == 4) {
                 weapon.display = true;
                 weapon.setProperties(41, true, rand()%SCREEN_WIDTH, rand()%SCREEN_HEIGHT);
                 currentWave++;
