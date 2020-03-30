@@ -19,6 +19,7 @@ const int ANIMATION_FRAME_RATE = 16;
 const int ENEMY_SIZE = 16;
 const int PLAYER_WIDTH = 16;
 const int PLAYER_HEIGHT = 28;
+const int COIN_SIZE = 8;
 
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
@@ -100,6 +101,29 @@ public:
 SDL_Rect gSpriteClips[100];
 LTexture gSpriteSheetTexture;
 LTexture gTextTexture; // TTF
+
+class Coin {
+    public:
+        float mPosX, mPosY;
+        int frame;
+    
+    Coin(float x, float y) {
+        mPosX = x;
+        mPosY = y;
+    }
+
+    void render() {
+        ++frame;
+        if(frame / ANIMATION_FRAME_RATE >= ANIMATION_FRAMES){
+            frame = 0;
+        }
+        gSpriteSheetTexture.render(mPosX, mPosY, &gSpriteClips[(frame / ANIMATION_FRAME_RATE) + 42], 0.0, NULL, SDL_FLIP_NONE);
+    }
+
+    private:
+        int ANIMATION_FRAMES = 4;
+
+};
 
 class Enemy {
     public:
@@ -186,7 +210,7 @@ class Player {
             mVelY = 0;
         }
 
-        bool intersect(Enemy b){
+        bool intersectEnemy(Enemy b) {
             float x1 = mPosX + ENEMY_SIZE;
             float y1 = mPosY + ENEMY_SIZE;
             int r1 = ENEMY_SIZE;
@@ -199,6 +223,21 @@ class Player {
                 return true;
             }
 
+            return false;
+        }
+
+        bool intersectCoin(Coin b) {
+            float x1 = mPosX;
+            float y1 = mPosY;
+            int r1 = COIN_SIZE;
+
+            float x2 = b.mPosX - PLAYER_WIDTH;
+            float y2 = b.mPosY - PLAYER_HEIGHT;
+            int r2 = PLAYER_WIDTH;
+
+            if((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) <= (r1+r2)*(r1+r2)){
+                return true;
+            }
             return false;
         }
 
@@ -553,6 +592,27 @@ bool loadMedia() {
         gSpriteClips[41].y = 18;
         gSpriteClips[41].w = 6;
         gSpriteClips[41].h = 13;
+
+        //COIN ANIMATION
+        gSpriteClips[42].x = 288;
+        gSpriteClips[42].y = 272;
+        gSpriteClips[42].w = COIN_SIZE;
+        gSpriteClips[42].h = COIN_SIZE;
+
+        gSpriteClips[43].x = 296;
+        gSpriteClips[43].y = 272;
+        gSpriteClips[43].w = COIN_SIZE;
+        gSpriteClips[43].h = COIN_SIZE;
+
+        gSpriteClips[44].x = 304;
+        gSpriteClips[44].y = 272;
+        gSpriteClips[44].w = COIN_SIZE;
+        gSpriteClips[44].h = COIN_SIZE;
+
+        gSpriteClips[45].x = 312;
+        gSpriteClips[45].y = 272;
+        gSpriteClips[45].w = COIN_SIZE;
+        gSpriteClips[45].h = COIN_SIZE;
     }
     return success;
 }
@@ -657,6 +717,11 @@ Enemy createEnemy(int x, int y, int vel, int t, int hp) {
     return e;
 }
 
+Coin createCoin(int x, int y) {
+    Coin c(x, y);
+    return c;
+}
+
 void createEnemies(std::vector<Enemy>& enemies, int amount, int speed, int clip, int health) {
     for(int i = enemies.size(); i < amount; i++) {
         int delay = rand()%(21)+40;
@@ -687,7 +752,7 @@ int main(int argc, char* args[]){
             {0, 0, 0, 0}, // Knife Event
             {0, 0, 0, 0},
             {0, 0, 0 , 0},
-            {30, 2, 17, 1} //TEST
+            {30, 2, 17, 4} //TEST
         };
 
         std::string waveNarration[8] {
@@ -714,10 +779,12 @@ int main(int argc, char* args[]){
 
         std::vector<Enemy> enemies;
 
+        std::vector<Coin> coins;
 
         int currentWeapon = 0; //No weapon ( just a kick :) )
         int currentWave = 0;
         int killCount = 0;
+        int coinCount = 0;
 
         SDL_Color c;
         c.r = 255;
@@ -759,9 +826,10 @@ int main(int argc, char* args[]){
             for(int i = 0; i < enemies.size(); i++){
                 if(enemies[i].health <= 0){
                     killCount++;
+                    coins.push_back(createCoin(enemies[i].mPosX, enemies[i].mPosY));
                     enemies.erase(enemies.begin() + i);
                 } else {
-                    if(player.intersect(enemies[i])){
+                    if(player.intersectEnemy(enemies[i])){
                         enemies[i].mVelX = 0;
                         enemies[i].mVelY = 0;
                         enemies[i].attackable = true;
@@ -796,7 +864,7 @@ int main(int argc, char* args[]){
                 currentWave++;
             } else if(currentWave == 5) {
                 if(weapon.isDropped && weapon.intersect(player)) {
-                    std::cout << "YES";
+                    currentWeapon = 41;
                     weapon.isDropped = false;
                     currentWave++;
                 }
@@ -811,14 +879,22 @@ int main(int argc, char* args[]){
                 weapon.render();
             }
 
-            // if(currentWave != 0) {
-            //     gTextTexture.loadFromRenderedText("Wave: " + std::to_string(currentWave), c);
-            //     gTextTexture.render(0, 0);
-            // }
+            for(int i = 0; i < coins.size(); i++){
+                if(player.intersectCoin(coins[i])) {
+                    coinCount++;
+                    coins.erase(coins.begin() + i);
+                } else {
+                    coins[i].render();
+                }
+            }
+
             if(currentWave < sizeof(waveNarration)/sizeof(waveNarration[0])) {
                 gTextTexture.loadFromRenderedText(waveNarration[currentWave], c);
                 gTextTexture.render(0, SCREEN_HEIGHT-gTextTexture.getHeight());
             }
+
+            gTextTexture.loadFromRenderedText("Coins: " + std::to_string(coinCount), c);
+            gTextTexture.render(SCREEN_WIDTH - gTextTexture.getWidth(), 0);
             
             SDL_RenderPresent(gRenderer);
         }
