@@ -801,6 +801,13 @@ int main(int argc, char* args[]){
     } else if(!loadMedia()){
         printf("Failed to load media!\n");
     } else {
+        int monsterData[3][3] = {
+            {2, 17, 1}, // Tiny Zombie
+            {1, 25, 2}, // Goblins
+            {1, 33, 5} // Imp
+        };
+
+
         int waveData[7][4] = { // In each wave, monster: amount, speed, clip, and health is defined in order
             {-1, 0, 0, 0}, // Not an actual wave
             {10, 2, 17, 1}, // Tiny Zombie 
@@ -937,20 +944,19 @@ int main(int argc, char* args[]){
                     killCount = 0;
                     enemiesToKill = (rand()%20)+10;
                     enemiesToGenerate = enemiesToKill;
-                    for(int i = 0; i < rand()%3+1; i++) {
-                        if(enemiesToGenerate > 0) {
-                            enemyAmount = rand()%enemiesToGenerate;// 1
-                            switch(rand()%3){
-                                case 0: enemySpeed = 2; enemyClip = 17; enemyHealth = 1; break;
-                                case 1: enemySpeed = 1; enemyClip = 25; enemyHealth = 2; break;
-                                case 2: enemySpeed = 1; enemyClip = 33; enemyHealth = 5; break;
-                            };
-                            createEnemies(enemies, enemyAmount, enemySpeed ,enemyClip, enemyHealth);
-                            enemiesToGenerate -= enemyAmount;
+
+                    for(int i = 0; i < enemiesToGenerate; i++) {
+                        int enemyType = rand()%3;
+                        int delay = rand()%(21)+40;
+                        int x, y;
+                        if(rand() % 2 == 0){
+                            x = rand() % SCREEN_WIDTH;
+                            y = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_HEIGHT + ENEMY_SIZE*delay;
+                        } else {
+                            x = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_WIDTH + ENEMY_SIZE*delay;
+                            y = rand() % SCREEN_HEIGHT;
                         }
-                    }
-                    if(enemiesToGenerate > 0) {
-                        createEnemies(enemies, enemiesToGenerate, enemySpeed, enemyClip, enemyHealth);
+                        enemies.push_back(createEnemy(x, y, monsterData[enemyType][0], monsterData[enemyType][1], monsterData[enemyType][2]));
                     }
                 }
             }
