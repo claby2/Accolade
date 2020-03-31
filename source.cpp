@@ -764,7 +764,7 @@ void printTileMap(int tileMap[][WINDOW_SIZE]){ // DEBUG ONLY
     }
 }
 
-Enemy createEnemy(int x, int y, int vel, int t, int hp) {
+Enemy createEnemy(float x, float y, int vel, int t, int hp) {
     Enemy e(x, y, vel, t, hp);
     return e;
 }
@@ -779,18 +779,24 @@ Chest createChest(int x, int y) {
     return c;
 }
 
+std::pair<float, float> getEnemySpawnPosition() {
+    float x, y;
+    float delay = rand()%(21)+40;
+    if(rand() % 2 == 0){
+        x = rand() % SCREEN_WIDTH;
+        y = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_HEIGHT + ENEMY_SIZE*delay;
+    } else {
+        x = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_WIDTH + ENEMY_SIZE*delay;
+        y = rand() % SCREEN_HEIGHT;
+    }
+
+    return std::make_pair(x, y);
+}
+
 void createEnemies(std::vector<Enemy>& enemies, int amount, int speed, int clip, int health) {
     for(int i = enemies.size(); i < amount; i++) {
-        int delay = rand()%(21)+40;
-        int x, y;
-        if(rand() % 2 == 0){
-            x = rand() % SCREEN_WIDTH;
-            y = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_HEIGHT + ENEMY_SIZE*delay;
-        } else {
-            x = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_WIDTH + ENEMY_SIZE*delay;
-            y = rand() % SCREEN_HEIGHT;
-        }
-        enemies.push_back(createEnemy(x, y, speed, clip, health));
+        std::pair<float, float> pos = getEnemySpawnPosition();
+        enemies.push_back(createEnemy(pos.first, pos.second, speed, clip, health));
     }
 }
 
@@ -947,16 +953,8 @@ int main(int argc, char* args[]){
 
                     for(int i = 0; i < enemiesToGenerate; i++) {
                         int enemyType = rand()%3;
-                        int delay = rand()%(21)+40;
-                        int x, y;
-                        if(rand() % 2 == 0){
-                            x = rand() % SCREEN_WIDTH;
-                            y = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_HEIGHT + ENEMY_SIZE*delay;
-                        } else {
-                            x = rand() % 2 == 0 ? -ENEMY_SIZE*delay: SCREEN_WIDTH + ENEMY_SIZE*delay;
-                            y = rand() % SCREEN_HEIGHT;
-                        }
-                        enemies.push_back(createEnemy(x, y, monsterData[enemyType][0], monsterData[enemyType][1], monsterData[enemyType][2]));
+                        std::pair<float, float> pos = getEnemySpawnPosition();
+                        enemies.push_back(createEnemy(pos.first, pos.second, monsterData[enemyType][0], monsterData[enemyType][1], monsterData[enemyType][2]));
                     }
                 }
             }
