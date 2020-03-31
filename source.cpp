@@ -21,6 +21,7 @@ const int PLAYER_WIDTH = 16;
 const int PLAYER_HEIGHT = 28;
 const int COIN_SIZE = 8;
 const int CHEST_SIZE = 16;
+const int CHEST_SPAWN_FREQUENCY = 5; //Every n rounds
 
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
@@ -865,10 +866,7 @@ int main(int argc, char* args[]){
         //Endless Mode Variables
         int enemiesToKill;
         int enemiesToGenerate;
-        int enemyAmount;
-        int enemySpeed;
-        int enemyClip;
-        int enemyHealth;
+        int endlessCurrentWave = 0;
 
         while(!quit){
             while(SDL_PollEvent( &e ) != 0) {
@@ -947,6 +945,10 @@ int main(int argc, char* args[]){
 
             if(endlessMode) {
                 if(enemies.empty()) {
+                    endlessCurrentWave++;
+                    if(endlessCurrentWave % CHEST_SPAWN_FREQUENCY == 0) {
+                        chests.push_back(createChest(rand()%(SCREEN_WIDTH/2), rand()%(SCREEN_HEIGHT/2)));
+                    }
                     killCount = 0;
                     enemiesToKill = (rand()%20)+10;
                     enemiesToGenerate = enemiesToKill;
