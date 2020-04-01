@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include "C:/MinGW/include/SDL2/SDL.h"
 #include "C:/MinGW/include/SDL2/SDL_image.h"
 #include "C:/MinGW/include/SDL2/SDL_ttf.h"
 #include <iostream>
@@ -358,19 +358,21 @@ class Weapon {
 
 class Chest {
     public:
-        int mPosX;
-        int mPosY;
+        float mPosX;
+        float mPosY;
         int opened = false;
 
-    Chest(int x, int y) {
+    Chest(float x, float y) {
         mPosX = x;
         mPosY = y;
     }
 
-    void intersectMouse(int mouseX, int mouseY) {
+    bool intersectMouse(float mouseX, float mouseY) {
         if(mouseX >= mPosX && mouseX <= mPosX + CHEST_SIZE*SPRITE_ZOOM_FACTOR && mouseY >= mPosY && mouseY <= mPosY + CHEST_SIZE*SPRITE_ZOOM_FACTOR) {
             opened = true;
+            return true;
         }
+        return false;
     }
 
     bool render() {
@@ -765,14 +767,24 @@ void printTileMap(int tileMap[][WINDOW_SIZE]){ // DEBUG ONLY
     }
 }
 
+
 Enemy createEnemy(float x, float y, int vel, int t, int hp) {
     Enemy e(x, y, vel, t, hp);
     return e;
 }
 
-Coin createCoin(int x, int y) {
+Coin createCoin(float x, float y) {
     Coin c(x, y);
     return c;
+}
+
+void spawnCoinGroup(std::vector<Coin>& coins, float x, float y) {
+    int coinAmount = (rand()%100)+10;
+    for(int i = 0; i < coinAmount; i++) {
+        float sx = (rand()%(CHEST_SIZE*3)) + (x - CHEST_SIZE);
+        float sy = (rand()%(CHEST_SIZE*3)) + (y - CHEST_SIZE);
+        coins.push_back(createCoin(sx, sy));
+    }
 }
 
 Chest createChest(int x, int y) {
@@ -878,7 +890,9 @@ int main(int argc, char* args[]){
                     int mouseX, mouseY;
                     SDL_GetMouseState(&mouseX, &mouseY);
                     for(int i = 0; i < chests.size(); i++) {
-                        chests[i].intersectMouse(mouseX, mouseY);
+                        if(chests[i].intersectMouse(mouseX, mouseY)) {
+                            spawnCoinGroup(coins, chests[i].mPosX, chests[i].mPosY);
+                        }
                     }
                     if(player.attackingFrame == 0) {
                         if(currentWave == 0) {
@@ -903,7 +917,6 @@ int main(int argc, char* args[]){
             renderTileMap(tileMap);
 
             player.move();
-            player.render();
 
             for(int i = 0; i < enemies.size(); i++){
                 if(enemies[i].health <= 0){
@@ -997,6 +1010,7 @@ int main(int argc, char* args[]){
                     chests.erase(chests.begin() + i);
                 }
             }
+            player.render();
 
             if(currentWave < sizeof(waveNarration)/sizeof(waveNarration[0])) {
                 gTextTexture.loadFromRenderedText(waveNarration[currentWave], c);
