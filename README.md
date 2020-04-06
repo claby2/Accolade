@@ -1,5 +1,7 @@
 # Accolade
 A 'wave-based' game made with SDL2 where different types of enemies enter the screen each wave. The player uses melee attacks in order to defeat monsters and pass waves while collecting coins. 
+
+![Preview](preview.png)
 ### Dependencies
 ```
 SDL2
